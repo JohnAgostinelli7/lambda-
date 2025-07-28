@@ -1,144 +1,113 @@
-// Initialize Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyDNRsHeUNRQjDFCrd9PX3XIWq5DGZkkYJU",
-  authDomain: "lambda-df556.firebaseapp.com",
-  databaseURL: "https://lambda-df556-default-rtdb.firebaseio.com",
-  projectId: "lambda-df556",
-  storageBucket: "lambda-df556.appspot.com",
-  messagingSenderId: "353626314721",
-  appId: "1:353626314721:web:84ae36190386289b2364a0",
-  measurementId: "G-RGF9WFSJE7"
-};
+// auth.js
+document.addEventListener('DOMContentLoaded', function() {
+    const auth = firebase.auth();
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
 
-// Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const database = firebase.database();
+    // Login Handler
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            const rememberMe = document.getElementById('remember-me').checked;
 
-// ================= AUTHENTICATION FUNCTIONS ================= //
+            // Set persistence based on remember me
+            const persistence = rememberMe ? 
+                firebase.auth.Auth.Persistence.LOCAL : 
+                firebase.auth.Auth.Persistence.SESSION;
 
-// Set auth persistence (keep users logged in)
-function initializeAuthPersistence() {
-  return auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-    .then(() => console.log("Auth persistence set to LOCAL"))
-    .catch(error => console.error("Error setting persistence:", error));
-}
-
-// Check current auth state
-function checkAuthState() {
-  return new Promise((resolve) => {
-    const unsubscribe = auth.onAuthStateChanged(user => {
-      unsubscribe(); // Important to avoid memory leaks
-      resolve(user);
-    });
-  });
-}
-
-// Handle user login
-async function login() {
-  const loginInput = document.getElementById("login-username").value.trim();
-  const password = document.getElementById("login-password").value;
-  const rememberMe = document.getElementById("remember-me").checked;
-
-  try {
-    // Set persistence based on "Remember Me"
-    const persistence = rememberMe 
-      ? firebase.auth.Auth.Persistence.LOCAL 
-      : firebase.auth.Auth.Persistence.SESSION;
-
-    await auth.setPersistence(persistence);
-
-    // Determine if using email or username login
-    if (loginInput.includes('@')) {
-      await auth.signInWithEmailAndPassword(loginInput, password);
-    } else {
-      const snapshot = await database.ref(`usernames/${loginInput}`).once('value');
-      if (!snapshot.exists()) throw new Error('Username not found');
-      
-      const userId = snapshot.val();
-      const emailSnapshot = await database.ref(`users/${userId}/email`).once('value');
-      const email = emailSnapshot.val();
-      if (!email) throw new Error('No email associated with this username');
-      
-      await auth.signInWithEmailAndPassword(email, password);
+            auth.setPersistence(persistence)
+                .then(() => {
+                    return auth.signInWithEmailAndPassword(email, password);
+                })
+                .then((userCredential) => {
+                    // Successful login
+                    window.location.href = 'dashboard.html'; // Redirect to dashboard
+                })
+                .catch((error) => {
+                    // Handle errors
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    alert(`Login failed: ${errorMessage}`);
+                });
+        });
     }
 
-    // Redirect on successful login
-    window.location.href = "dashboard.html";
-    
-  } catch (error) {
-    console.error("Login error:", error);
-    throw error; // Rethrow for handling in UI
-  }
-}
+    // Signup Handler
+    if (signupForm) {
+        signupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
 
-// Handle user signup
-async function signUp() {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value;
-  const confirmPassword = document.getElementById("confirm-password").value;
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                alert("Passwords don't match!");
+                return;
+            }
 
-  // Validate inputs
-  if (password !== confirmPassword) throw new Error("Passwords don't match");
-  if (password.length < 6) throw new Error("Password must be at least 6 characters");
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Successful signup
+                    const user = userCredential.user;
+                    
+                    // Save additional user data to database
+                    const db = firebase.database();
+                    const userRef = db.ref('users/' + user.uid);
+                    
+                    const userData = {
+                        username: document.getElementById('username').value,
+                        fullname: document.getElementById('fullname').value,
+                        email: email,
+                        form: document.getElementById('form').value,
+                        gender: document.querySelector('input[name="gender"]:checked').value,
+                        zerakiAccount: document.getElementById('zeraki-check').checked,
+                        createdAt: firebase.database.ServerValue.TIMESTAMP
+                    };
 
-  try {
-    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-    
-    // Prepare user data
-    const userData = {
-      email: email,
-      fullName: document.getElementById("fullname").value,
-      username: document.getElementById("username").value,
-      form: document.getElementById("form").value,
-      gender: document.querySelector('input[name="gender"]:checked').value,
-      createdAt: firebase.database.ServerValue.TIMESTAMP
+                    if (userData.zerakiAccount) {
+                        userData.zerakiUsername = document.getElementById('zeraki-username').value;
+                        userData.zerakiPassword = document.getElementById('zeraki-password').value;
+                    }
+
+                    return userRef.set(userData);
+                })
+                .then(() => {
+                    // Redirect after successful signup
+                    window.location.href = 'dashboard.html';
+                })
+                .catch((error) => {
+                    // Handle errors
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    alert(`Signup failed: ${errorMessage}`);
+                });
+        });
+    }
+
+    // Password reset function
+    window.resetPassword = function() {
+        const email = prompt("Please enter your email address to reset your password:");
+        if (email) {
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    alert("Password reset email sent! Please check your inbox.");
+                })
+                .catch((error) => {
+                    alert(`Error sending reset email: ${error.message}`);
+                });
+        }
     };
 
-    // Save user data
-    await database.ref(`users/${userCredential.user.uid}`).set(userData);
-    await database.ref(`usernames/${userData.username}`).set(userCredential.user.uid);
-    
-    // Send verification email
-    await userCredential.user.sendEmailVerification();
-    
-    // Redirect to dashboard
-    window.location.href = "dashboard.html";
-    
-  } catch (error) {
-    console.error("Signup error:", error);
-    throw error;
-  }
-}
-
-// Handle password reset
-async function resetPassword() {
-  const email = document.getElementById("login-username")?.value || 
-               prompt("Enter your email to reset password:");
-  
-  if (!email) return;
-
-  try {
-    await auth.sendPasswordResetEmail(email);
-    alert("Password reset email sent! Check your inbox.");
-  } catch (error) {
-    console.error("Password reset error:", error);
-    throw error;
-  }
-}
-
-// Handle logout
-function logout() {
-  return auth.signOut()
-    .then(() => {
-      window.location.href = "login.html";
+    // Check auth state to prevent login page access when already logged in
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            // User is signed in, redirect to dashboard
+            window.location.href = 'dashboard.html';
+        }
     });
-}
-
-// Initialize when page loads
-document.addEventListener("DOMContentLoaded", () => {
-  initializeAuthPersistence();
 });
-
-// ================= EXPORT FUNCTIONS ================= //
-// (Only needed if you're using modules, otherwise they're globally available)
