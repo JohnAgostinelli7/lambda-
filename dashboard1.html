@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Lambda Studies Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        .sidebar.collapsed {
+            width: 70px;
+        }
+        .sidebar.collapsed .nav-text {
+            display: none;
+        }
+        .main-content {
+            transition: all 0.3s ease;
+        }
+        .sidebar.collapsed + .main-content {
+            margin-left: 70px;
+        }
+        .progress-bar {
+            height: 10px;
+            border-radius: 5px;
+            background-color: #e0e0e0;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            transition: width 0.3s ease;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #10b981;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p class="text-gray-700">Loading dashboard...</p>
+        <button id="redirect-login" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hidden">
+            Go to Login Page
+        </button>
+    </div>
+
+    <div class="flex h-screen overflow-hidden hidden" id="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar bg-green-700 text-white w-64 flex-shrink-0">
+            <div class="p-4 flex items-center justify-between border-b border-green-600">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                        <i class="fas fa-atom text-white"></i>
+                    </div>
+                    <span class="ml-3 font-semibold text-lg nav-text">Lambda Studies</span>
+                </div>
+                <button id="toggleSidebar" class="text-white focus:outline-none">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+            <nav class="p-4">
+                <ul>
+                    <li class="mb-2">
+                        <a href="#" onclick="showSection('dashboard', event)" class="flex items-center p-3 rounded-lg bg-green-600 text-white">
+                            <i class="fas fa-home"></i>
+                            <span class="nav-text ml-3">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" onclick="showSection('books', event)" class="flex items-center p-3 rounded-lg hover:bg-green-600 text-white">
+                            <i class="fas fa-book"></i>
+                            <span class="nav-text ml-3">Books</span>
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" onclick="showSection('test-papers', event)" class="flex items-center p-3 rounded-lg hover:bg-green-600 text-white">
+                            <i class="fas fa-file-alt"></i>
+                            <span class="nav-text ml-3">Test Papers</span>
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" onclick="showSection('zeraki', event)" class="flex items-center p-3 rounded-lg hover:bg-green-600 text-white">
+                            <i class="fas fa-chart-line"></i>
+                            <span class="nav-text ml-3">Zeraki Analytics</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="logout-btn flex items-center p-3 rounded-lg hover:bg-green-600 text-white">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span class="nav-text ml-3">Log Out</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content flex-1 overflow-auto">
+            <!-- Top Navigation -->
+            <div class="bg-white shadow-sm p-4 flex justify-between items-center">
+                <div class="flex items-center">
+                    <button id="mobile-menu-toggle" class="mr-4 md:hidden">
+                        <i class="fas fa-bars text-gray-600"></i>
+                    </button>
+                    <h1 id="current-section-title" class="text-xl font-semibold text-gray-800">Dashboard</h1>
+                </div>
+                <div class="flex items-center">
+                    <div class="relative mr-4">
+                        <input type="text" placeholder="Search..." class="pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                    <div class="relative">
+                        <img id="user-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" class="w-10 h-10 rounded-full cursor-pointer" alt="User">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <!-- Student Profile Card -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex items-center mb-4">
+                            <img id="profile-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" class="w-16 h-16 rounded-full mr-4" alt="Student">
+                            <div>
+                                <h2 id="profile-name" class="text-xl font-semibold">Loading...</h2>
+                                <p id="profile-form" class="text-gray-500">Loading...</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500">Form</p>
+                                <p id="profile-form-value" class="font-medium">Loading...</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Gender</p>
+                                <p id="profile-gender" class="font-medium">Loading...</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">School</p>
+                                <p id="profile-school" class="font-medium">Loading...</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Status</p>
+                                <p class="font-medium text-green-600">Active</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Summary -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-lg font-semibold mb-4">Performance Summary</h2>
+                        <div class="mb-4">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium">Overall Progress</span>
+                                <span class="text-sm font-medium">78%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 78%"></div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500">Best Subject</p>
+                                <p class="font-medium">Mathematics</p>
+                                <p class="text-sm text-green-500">92%</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Needs Improvement</p>
+                                <p class="font-medium">Chemistry</p>
+                                <p class="text-sm text-red-500">65%</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Average Score</p>
+                                <p class="font-medium">78%</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Rank</p>
+                                <p class="font-medium">12/120</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-lg font-semibold mb-4">Quick Actions</h2>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="showSection('books', event)" class="flex items-center justify-center p-3 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100">
+                                <i class="fas fa-book mr-2"></i>
+                                <span>Books</span>
+                            </button>
+                            <button onclick="showSection('test-papers', event)" class="flex items-center justify-center p-3 rounded-lg bg-green-50 text-green-600 hover:bg-green-100">
+                                <i class="fas fa-file-alt mr-2"></i>
+                                <span>Tests</span>
+                            </button>
+                            <button onclick="showSection('zeraki', event)" class="flex items-center justify-center p-3 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100">
+                                <i class="fas fa-chart-line mr-2"></i>
+                                <span>Analytics</span>
+                            </button>
+                            <button class="flex items-center justify-center p-3 rounded-lg bg-yellow-50 text-yellow-600 hover:bg-yellow-100">
+                                <i class="fas fa-cog mr-2"></i>
+                                <span>Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Graph -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold">Performance Trend</h2>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 text-sm rounded-full bg-blue-100 text-blue-600">Monthly</button>
+                            <button class="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-600">Quarterly</button>
+                            <button class="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-600">Yearly</button>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-lg font-semibold mb-4">Recent Activity</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="bg-green-100 p-2 rounded-full mr-3">
+                                <i class="fas fa-book text-green-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Completed Mathematics Chapter 3</p>
+                                <p class="text-sm text-gray-500">2 hours ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-blue-100 p-2 rounded-full mr-3">
+                                <i class="fas fa-file-alt text-blue-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Submitted Chemistry Test</p>
+                                <p class="text-sm text-gray-500">1 day ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Books Section -->
+            <section id="books" class="content-section p-6">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Book Store</h1>
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <p>Books content will appear here</p>
+                </div>
+            </section>
+
+            <!-- Test Papers Section -->
+            <section id="test-papers" class="content-section p-6">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Test Papers</h1>
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <p>Test papers will appear here</p>
+                </div>
+            </section>
+
+            <!-- Zeraki Analytics Section -->
+            <section id="zeraki" class="content-section p-6">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Zeraki Analytics</h1>
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <p>Zeraki analytics will appear here</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+
+    <script>
+        // Firebase configuration - REPLACE WITH YOUR ACTUAL CONFIG
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // DOM Elements
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const dashboardContainer = document.getElementById('dashboard-container');
+        const redirectLoginBtn = document.getElementById('redirect-login');
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+        });
+
+        async function initializeDashboard() {
+            try {
+                // Check authentication state
+                const user = await checkAuthState();
+                
+                if (!user) {
+                    console.log("No authenticated user, redirecting to login");
+                    window.location.href = "login.html";
+                    return;
+                }
+
+                // Load user data
+                await loadUserData(user.uid);
+                
+                // Initialize UI
+                setupDashboardUI();
+                initPerformanceChart();
+                
+                // Show dashboard
+                hideLoading();
+
+            } catch (error) {
+                console.error("Dashboard initialization failed:", error);
+                showError("Failed to load dashboard. Please try again.");
+                redirectLoginBtn.classList.remove('hidden');
+            }
+        }
+
+        // Check auth state
+        function checkAuthState() {
+            return new Promise((resolve, reject) => {
+                const unsubscribe = auth.onAuthStateChanged(user => {
+                    unsubscribe();
+                    if (user) {
+                        resolve(user);
+                    } else {
+                        resolve(null);
+                    }
+                }, error => {
+                    unsubscribe();
+                    reject(error);
+                });
+            });
+        }
+
+        // Load user data
+        async function loadUserData(userId) {
+            try {
+                const snapshot = await database.ref('users/' + userId).once('value');
+                const userData = snapshot.val();
+                
+                if (userData) {
+                    // Update profile info
+                    document.getElementById('profile-name').textContent = userData.fullName || 'User';
+                    document.getElementById('profile-form').textContent = userData.form ? `Form ${userData.form}` : 'Not specified';
+                    document.getElementById('profile-form-value').textContent = userData.form ? `Form ${userData.form}` : 'Not specified';
+                    document.getElementById('profile-gender').textContent = userData.gender || 'Not specified';
+                    document.getElementById('profile-school').textContent = userData.school || 'Not specified';
+                    
+                    // Update avatar
+                    const avatarUrl = userData.photoURL || 
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.fullName || 'User')}&background=10b981&color=fff`;
+                    document.getElementById('user-avatar').src = avatarUrl;
+                    document.getElementById('profile-avatar').src = avatarUrl;
+                }
+            } catch (error) {
+                console.error("Error loading user data:", error);
+                throw error;
+            }
+        }
+
+        // Setup UI interactions
+        function setupDashboardUI() {
+            // Sidebar toggle
+            document.getElementById('toggleSidebar').addEventListener('click', function() {
+                document.querySelector('.sidebar').classList.toggle('collapsed');
+            });
+
+            // Mobile menu toggle
+            document.getElementById('mobile-menu-toggle').addEventListener('click', function() {
+                document.querySelector('.sidebar').classList.toggle('hidden');
+            });
+
+            // Logout
+            document.querySelector('.logout-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                auth.signOut().then(() => {
+                    window.location.href = "login.html";
+                });
+            });
+
+            // Redirect to login if needed
+            redirectLoginBtn.addEventListener('click', function() {
+                window.location.href = "login.html";
+            });
+        }
+
+        // Initialize performance chart
+        function initPerformanceChart() {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Performance',
+                        data: [65, 59, 70, 71, 76, 78],
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: false, min: 50, max: 100 }
+                    }
+                }
+            });
+        }
+
+        // Show dashboard
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+            dashboardContainer.classList.remove('hidden');
+        }
+
+        // Show error
+        function showError(message) {
+            const errorElement = document.createElement('p');
+            errorElement.className = 'text-red-500 mt-2';
+            errorElement.textContent = message;
+            loadingOverlay.appendChild(errorElement);
+        }
+
+        // Section navigation
+        function showSection(sectionId, event) {
+            if (event) event.preventDefault();
+            
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Update section title
+            const title = document.querySelector(`#${sectionId} h1`)?.textContent || 'Dashboard';
+            document.getElementById('current-section-title').textContent = title;
+            
+            // Update active nav item
+            document.querySelectorAll('nav a').forEach(link => {
+                link.classList.remove('bg-green-600');
+            });
+            
+            if (event?.currentTarget) {
+                event.currentTarget.classList.add('bg-green-600');
+            }
+        }
+    </script>
+</body>
+</html>
