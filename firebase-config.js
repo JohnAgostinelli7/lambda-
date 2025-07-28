@@ -1,16 +1,13 @@
+// firebase-config.js
 const firebaseConfig = {
-  apiKey: "AIzaSyDNRsHeUNRQjDFCrd9PX3XIWq5DGZkkYJU",
-  authDomain: "lambda-df556.firebaseapp.com",
-  projectId: "lambda-df556",
-  storageBucket: "lambda-df556.firebasestorage.app",
-  messagingSenderId: "353626314721",
-  appId: "1:353626314721:web:84ae36190386289b2364a0",
-  measurementId: "G-RGF9WFSJE7"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-
-// Reference to Firebase Auth and Database
-const auth = firebase.auth();
-const database = firebase.database();
