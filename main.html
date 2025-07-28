@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -36,9 +37,33 @@
             -webkit-text-fill-color: transparent;
             font-weight: 700;
         }
+        #logout-modal {
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Confirm Logout</h3>
+                <button onclick="hideLogoutModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <p class="text-gray-600 mb-6">Are you sure you want to log out of your account?</p>
+            <div class="flex justify-end space-x-4">
+                <button onclick="hideLogoutModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button onclick="performLogout()" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                    Log Out
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <div class="hidden md:flex md:flex-shrink-0">
@@ -79,7 +104,7 @@
                             <i class="fas fa-info-circle mr-3 text-gray-500"></i>
                             About
                         </a>
-                        <a href="#" class="sidebar-item flex items-center px-4 py-3 text-sm font-medium rounded-md text-gray-900">
+                        <a href="#" class="sidebar-item flex items-center px-4 py-3 text-sm font-medium rounded-md text-gray-900" onclick="showLogoutModal()">
                             <i class="fas fa-sign-out-alt mr-3 text-gray-500"></i>
                             Log Out
                         </a>
@@ -103,9 +128,9 @@
                     <i class="fas fa-book"></i>
                     <span class="text-xs mt-1">Books</span>
                 </a>
-                <a href="#" class="flex flex-col items-center justify-center p-3 text-gray-500" onclick="showAbout()">
-                    <i class="fas fa-info-circle"></i>
-                    <span class="text-xs mt-1">About</span>
+                <a href="#" class="flex flex-col items-center justify-center p-3 text-gray-500" onclick="showLogoutModal()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="text-xs mt-1">Logout</span>
                 </a>
             </div>
         </div>
@@ -131,9 +156,23 @@
                     </button>
                     <div class="ml-3 relative">
                         <div>
-                            <button type="button" class="flex items-center max-w-xs rounded-full focus:outline-none focus:ring-2 focus:ring-green-500" id="user-menu" aria-expanded="false" aria-haspopup="true">
+                            <button type="button" class="flex items-center max-w-xs rounded-full focus:outline-none focus:ring-2 focus:ring-green-500" id="user-menu" aria-expanded="false" aria-haspopup="true" onclick="showProfileDropdown()">
                                 <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
                             </button>
+                        </div>
+                        <!-- Profile dropdown -->
+                        <div id="profile-dropdown" class="hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1" role="menu" aria-orientation="vertical">
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" onclick="showProfile()">
+                                    <i class="fas fa-user mr-2"></i> Your Profile
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                                    <i class="fas fa-cog mr-2"></i> Settings
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" onclick="showLogoutModal()">
+                                    <i class="fas fa-sign-out-alt mr-2"></i> Sign out
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1023,6 +1062,43 @@
                             }
                         }
                     }
+                }
+            });
+        }
+
+        // Logout functionality
+        function showLogoutModal() {
+            document.getElementById('logout-modal').classList.remove('hidden');
+        }
+
+        function hideLogoutModal() {
+            document.getElementById('logout-modal').classList.add('hidden');
+        }
+
+        function performLogout() {
+            // Show loading state
+            const logoutBtn = document.querySelector('#logout-modal button:last-child');
+            const originalText = logoutBtn.textContent;
+            logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Logging out...';
+            logoutBtn.disabled = true;
+
+            // Simulate logout process (in a real app, this would be an API call)
+            setTimeout(() => {
+                // Redirect to login page after logout
+                window.location.href = 'login.html'; // Change this to your actual login page
+            }, 1500);
+        }
+
+        // Profile dropdown functionality
+        function showProfileDropdown() {
+            const dropdown = document.getElementById('profile-dropdown');
+            dropdown.classList.toggle('hidden');
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function closeDropdown(e) {
+                if (!dropdown.contains(e.target) && e.target.id !== 'user-menu') {
+                    dropdown.classList.add('hidden');
+                    document.removeEventListener('click', closeDropdown);
                 }
             });
         }
